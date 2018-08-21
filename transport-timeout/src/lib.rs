@@ -31,7 +31,7 @@ extern crate log;
 extern crate tokio_timer;
 
 use futures::{Async, Future, Poll, Stream};
-use libp2p_core::{Multiaddr, MuxedTransport, Transport, ListenerResult, DialResult};
+use libp2p_core::{Multiaddr, MuxedTransport, Transport, TransportResult};
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::time::{Duration, Instant};
 use tokio_timer::{Deadline, DeadlineError};
@@ -89,7 +89,7 @@ where
     type ListenerUpgrade = TokioTimerMapErr<Deadline<InnerTrans::ListenerUpgrade>>;
     type Dial = TokioTimerMapErr<Deadline<InnerTrans::Dial>>;
 
-    fn listen_on(&self, addr: Multiaddr) -> ListenerResult<Self::Listener> {
+    fn listen_on(&self, addr: Multiaddr) -> TransportResult<(Self::Listener, Multiaddr)> {
         self.inner.listen_on(addr).map(|(listener, addr)|
             (TimeoutListener {
                 inner: listener,
@@ -98,7 +98,7 @@ where
         )
     }
 
-    fn dial(&self, addr: Multiaddr) -> DialResult<Self::Dial> {
+    fn dial(&self, addr: Multiaddr) -> TransportResult<Self::Dial> {
         self.inner.dial(addr).map(|dial|
             TokioTimerMapErr {
                 inner: Deadline::new(dial, Instant::now() + self.outgoing_timeout),
